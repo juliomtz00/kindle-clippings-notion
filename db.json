@@ -1,0 +1,7 @@
+{
+    "object": "error",
+    "status": 400,
+    "code": "missing_version",
+    "message": "Notion-Version header failed validation: Notion-Version header should be defined, instead was `undefined`.",
+    "request_id": "d754261a-e6a7-4365-b577-25d9513720de"
+}
