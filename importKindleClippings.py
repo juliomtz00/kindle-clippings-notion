@@ -40,52 +40,39 @@ def connectToNotion():
 def main():
     bookTitle, bookAuthor, bookLoc, bookQuote = "", "", "", ""
     oldTitle, oldAuthor, oldLoc, oldQuote = "", "", "", ""
-    newLine, saveParagraph = False, False
+    saveParagraph = False
     try:
         # Open the file in read mode
         with open('My Clippings.txt', 'r') as file:
             i = 0
             # Read the file line by line
             for line in file:
-                line.strip() # strip() removes the newline character at the end of each line
+                # strip() removes the newline character at the end of each line
 
                 # get book title and book author only if it is the first line or is a new line inside the file
-                if i == 0 or newLine:
-                    index, endIndex, newLine = line.rfind("("), line.rfind(")"), False
+                if line.strip().endswith(")"):
+                    index = line.rfind("(")
                     bookTitle = line[:index-1]
-                    bookAuthor = line[index+1:endIndex]
+                    bookAuthor = line[index+1:-1]
                     if bookAuthor.find(",") != -1:
                         comma = bookAuthor.find(",")
                         bookAuthor = f"{bookAuthor[comma+2:]} {bookAuthor[:comma]}".strip()
+                    print(bookTitle, bookAuthor)
                     
-                
                 # get the location by finding the word inside the file.
-                if line.find("Location") != -1:
+                elif line.find("Location") != -1:
                     index = line.find("Location")+len("Location")+1
                     endIndex = line.find(" ",index)
                     bookLoc = line[index:endIndex]
                 
                 # get the quote from the file and save it
-                if saveParagraph:
+                elif saveParagraph:
                     bookQuote = line.strip()
                     saveParagraph = False
 
-                # check if the indentation indicates that it is a new line.
-                if line.startswith("=========="):
-                    newLine = True
-                    
-                    # check if there are duplicates of the highlights before saving
-                    if (bookTitle == oldTitle and bookLoc == oldLoc) or i == 0:
-                        oldTitle, oldAuthor, oldLoc, oldQuote = bookTitle, bookAuthor, bookLoc, bookQuote
-                    else:
-                        print(oldTitle, oldAuthor, oldLoc, oldQuote)
-                
                 # check if the quote is next as it is preceded by a blank line
                 if not line.strip():
                     saveParagraph = True
-                
-                i+=1
-
     except:
         print("Failed to open text file, please check file.")   
 

@@ -1,10 +1,30 @@
 import requests
 import json
+import argparse
+import textwrap
 from datetime import datetime, timezone
 
+# Parse user's argument
+parser = argparse.ArgumentParser(formatter_class = argparse.RawDescriptionHelpFormatter,
+                                    description=textwrap.dedent('''\
+        This Python script imports the clippings that were highlighted from the books
+        read on a Kindle by importing the generated .txt file where the text is
+        saved, so they can be exported to the notion database.
+
+        '''))
+parser.add_argument("--notion_api_key", 
+                    type=str, 
+                    default='NOTION_API_KEY',
+                    help="Notion API KEY to generated with integrations")
+parser.add_argument("--database_id", 
+                    type=str, 
+                    default='database_id',
+                    help="Notion Database ID to write")
+args = parser.parse_args()
+
 # Set up your Notion integration and obtain an API key
-NOTION_API_KEY = "secret_vT3D6kW4xC0DlAkAHFkLb5UwRPJVxvRw8GlyUSJo7wh"
-DATABASE_ID = '01235d38b8eb442db43268ae198859f5'
+NOTION_API_KEY = args.notion_api_key
+DATABASE_ID = args.database_id
 
 # URL for querying data from the database
 url = f'https://api.notion.com/v1/databases/{DATABASE_ID}/query'
@@ -32,8 +52,6 @@ def get_pages(num_pages=None):
 
     # Comment this out to dump all data to a file
     # 
-    with open('db.json', 'w', encoding='utf8') as f:
-      json.dump(data, f, ensure_ascii=False, indent=4)
 
     results = data["results"]
     while data["has_more"] and get_all:
