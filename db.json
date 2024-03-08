@@ -1,7 +1,108 @@
 {
-    "object": "error",
-    "status": 400,
-    "code": "missing_version",
-    "message": "Notion-Version header failed validation: Notion-Version header should be defined, instead was `undefined`.",
-    "request_id": "d754261a-e6a7-4365-b577-25d9513720de"
+    "object": "list",
+    "results": [
+        {
+            "object": "page",
+            "id": "571d7370-63db-48e3-bc53-4049942477f9",
+            "created_time": "2024-03-08T05:26:00.000Z",
+            "last_edited_time": "2024-03-08T05:26:00.000Z",
+            "created_by": {
+                "object": "user",
+                "id": "74b4340d-8f1e-4d8a-8ce5-85170ef37c28"
+            },
+            "last_edited_by": {
+                "object": "user",
+                "id": "74b4340d-8f1e-4d8a-8ce5-85170ef37c28"
+            },
+            "cover": null,
+            "icon": null,
+            "parent": {
+                "type": "database_id",
+                "database_id": "01235d38-b8eb-442d-b432-68ae198859f5"
+            },
+            "archived": false,
+            "properties": {
+                "Book": {
+                    "id": "Hi_d",
+                    "type": "relation",
+                    "relation": [],
+                    "has_more": false
+                },
+                "Author": {
+                    "id": "%5DFZf",
+                    "type": "rollup",
+                    "rollup": {
+                        "type": "array",
+                        "array": [],
+                        "function": "show_original"
+                    }
+                },
+                "No. Page": {
+                    "id": "e%7DLX",
+                    "type": "formula",
+                    "formula": {
+                        "type": "string",
+                        "string": "Page: "
+                    }
+                },
+                "Author's name": {
+                    "id": "i%7C%40y",
+                    "type": "formula",
+                    "formula": {
+                        "type": "string",
+                        "string": "Author: "
+                    }
+                },
+                "Page": {
+                    "id": "pQdW",
+                    "type": "number",
+                    "number": null
+                },
+                "Book's tittle": {
+                    "id": "rPZI",
+                    "type": "formula",
+                    "formula": {
+                        "type": "string",
+                        "string": "Book:"
+                    }
+                },
+                "books shelf": {
+                    "id": "uKYt",
+                    "type": "relation",
+                    "relation": [],
+                    "has_more": false
+                },
+                "Quote": {
+                    "id": "title",
+                    "type": "title",
+                    "title": [
+                        {
+                            "type": "text",
+                            "text": {
+                                "content": "Yes",
+                                "link": null
+                            },
+                            "annotations": {
+                                "bold": false,
+                                "italic": false,
+                                "strikethrough": false,
+                                "underline": false,
+                                "code": false,
+                                "color": "default"
+                            },
+                            "plain_text": "Yes",
+                            "href": null
+                        }
+                    ]
+                }
+            },
+            "url": "https://www.notion.so/Yes-571d737063db48e3bc534049942477f9",
+            "public_url": null
+        }
+    ],
+    "next_cursor": null,
+    "has_more": false,
+    "type": "page_or_database",
+    "page_or_database": {},
+    "request_id": "9c1a4370-f984-425f-8c10-e0f26cf16550"
 }
