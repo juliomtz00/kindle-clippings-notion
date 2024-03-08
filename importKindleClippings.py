@@ -7,37 +7,35 @@ saved, so they can be exported to the notion database.
 
 '''
 import requests
+import argparse
+import textwrap
 
 # Notion API Key is generated inside the app in integrations
 # Generate a new one for your own database
 
-def connectToNotion():
-
-    # Set up your Notion integration and obtain an API key
-    NOTION_API_KEY = "secret_vT3D6kW4xC0DlAkAHFkLb5UwRPJVxvRw8GlyUSJo7wh"
-    DATABASE_ID = 'juliomr/01235d38b8eb442db43268ae198859f5?v=57479d41b04f437dafa61993b00ba8e4&pvs=4'
-
-    # URL for retrieving data from the database
-    url = f'https://api.notion.com/v1/databases/{DATABASE_ID}/query'
-
-    # Headers with API key
-    headers = {
-        'Authorization': f'Bearer {NOTION_API_KEY}',
-        'Content-Type': 'application/json',
-    }
-
-    # Send a GET request to retrieve data from the database
-    response = requests.post(url, headers=headers)
-
-    # Check if the request was successful
-    if response.status_code == 200:
-        data = response.json()
-        # Print retrieved data
-        print(data)
-    else:
-        print("Failed to retrieve data from Notion:", response.text)
+def connectToNotion(NOTION_API_KEY, DATABASE_ID):
+    pass
 
 def main():
+
+    # Parse user's argument
+    parser = argparse.ArgumentParser(formatter_class = argparse.RawDescriptionHelpFormatter,
+                                        description=textwrap.dedent('''\
+            This Python script imports the clippings that were highlighted from the books
+            read on a Kindle by importing the generated .txt file where the text is
+            saved, so they can be exported to the notion database.
+
+            '''))
+    parser.add_argument("--notion_api_key", 
+                        type=str, 
+                        default='NOTION_API_KEY',
+                        help="Notion API KEY to generated with integrations")
+    parser.add_argument("--database_id", 
+                        type=str, 
+                        default='database_id',
+                        help="Notion Database ID to write")
+    args = parser.parse_args()
+
     bookTitle, bookAuthor, bookLoc, bookQuote = "", "", "", ""
     oldTitle, oldAuthor, oldLoc, oldQuote = "", "", "", ""
     saveParagraph = False
