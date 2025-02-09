@@ -1,78 +1,196 @@
-'''
-importKindleClippings.py
-
-Script to import the clippings that were highlighted from the books
-read on a Kindle by importing the generated .txt file where the text is
-saved, so they can be exported to the notion database.
-
-'''
+import os
+import json
 import requests
-import argparse
-import textwrap
+from dotenv import load_dotenv
+import platform
 
-# Notion API Key is generated inside the app in integrations
-# Generate a new one for your own database
+# Load environment variables
+load_dotenv()
 
-def connectToNotion(NOTION_API_KEY, DATABASE_ID):
-    pass
+# Notion API Details
+NOTION_API_URL = "https://api.notion.com/v1/pages"
 
-def main():
+# File paths
+CLIPPINGS_FILE_NAME = "My Clippings.txt"
+SAVED_CLIPPINGS_DB = "oldQuotes.json"
 
-    # Parse user's argument
-    parser = argparse.ArgumentParser(formatter_class = argparse.RawDescriptionHelpFormatter,
-                                        description=textwrap.dedent('''\
-            This Python script imports the clippings that were highlighted from the books
-            read on a Kindle by importing the generated .txt file where the text is
-            saved, so they can be exported to the notion database.
 
-            '''))
-    parser.add_argument("--notion_api_key", 
-                        type=str, 
-                        default='NOTION_API_KEY',
-                        help="Notion API KEY to generated with integrations")
-    parser.add_argument("--database_id", 
-                        type=str, 
-                        default='database_id',
-                        help="Notion Database ID to write")
-    args = parser.parse_args()
+def find_kindle_device():
+    """ Find the mounted path of the Kindle device. """
+    kindle_path = "/Volumes/Kindle/documents"
 
-    bookTitle, bookAuthor, bookLoc, bookQuote = "", "", "", ""
-    oldTitle, oldAuthor, oldLoc, oldQuote = "", "", "", ""
-    saveParagraph = False
+    if kindle_path:
+        # Check if My Clippings.txt exists in the expected directory
+        clippings_file_path = os.path.join(kindle_path, CLIPPINGS_FILE_NAME)
+        if os.path.exists(clippings_file_path):
+            return clippings_file_path
+
+    return None
+
+
+def load_existing_clippings():
+    """ Load previously saved clippings from JSON. """
+    if os.path.exists(SAVED_CLIPPINGS_DB):
+        try:
+            with open(SAVED_CLIPPINGS_DB, "r", encoding="utf-8") as file:
+                return json.load(file) or []
+        except json.JSONDecodeError:
+            print("Warning: previousClippings.json is invalid. Resetting.")
+            return []
+    return []
+
+
+def save_new_clippings(new_clippings):
+    """ Save new clippings to JSON. """
+    existing_clippings = load_existing_clippings()
+    existing_set = {(clip["book_title"], clip["highlight"]) for clip in existing_clippings}
+
+    # Compare and keep only the longest highlight
+    for new_clip in new_clippings:
+        book_title = new_clip["book_title"]
+        new_quote = new_clip["highlight"]
+        longest_quote = None
+
+        # Check if the new quote is a longer version of an existing one
+        for existing_clip in existing_clippings:
+            existing_quote = existing_clip["highlight"]
+            if new_quote in existing_quote or existing_quote in new_quote:
+                longest_quote = max(existing_quote, new_quote, key=len)
+                break
+
+        # If no similar quote exists, just add it to the list
+        if not longest_quote:
+            longest_quote = new_quote
+
+        # Add the longest quote to the set and update the list
+        if (book_title, longest_quote) not in existing_set:
+            existing_set.add((book_title, longest_quote))
+            existing_clippings.append({
+                "book_title": book_title,
+                "book_author": new_clip["book_author"],
+                "book_location": new_clip["book_location"],
+                "highlight": longest_quote
+            })
+
+    # Save the updated list of clippings
+    with open(SAVED_CLIPPINGS_DB, "w", encoding="utf-8") as file:
+        json.dump(existing_clippings, file, indent=4)
+
+
+def parse_clippings_file():
+    """ Extract book highlights from 'My Clippings.txt'. """
+    new_clippings = []
+    existing_clippings = load_existing_clippings()
+    existing_set = {(clip["book_title"], clip["highlight"]) for clip in existing_clippings}
+
+    # Find Kindle device and open clippings file
+    kindle_file_path = find_kindle_device()
+
+    if not kindle_file_path:
+        print("Error: Kindle not found or 'My Clippings.txt' not found.")
+        return []
+
+    book_title, book_author, book_location, book_quote = "", "", "", ""
+    save_next_line = False
+
     try:
-        # Open the file in read mode
-        with open('My Clippings.txt', 'r') as file:
-            i = 0
-            # Read the file line by line
+        with open(kindle_file_path, 'r', encoding="utf-8") as file:
             for line in file:
-                # strip() removes the newline character at the end of each line
+                line = line.strip()
 
-                # get book title and book author only if it is the first line or is a new line inside the file
-                if line.strip().endswith(")"):
+                # Book Title & Author
+                if line.endswith(")"):
                     index = line.rfind("(")
-                    bookTitle = line[:index-1]
-                    bookAuthor = line[index+1:-1]
-                    if bookAuthor.find(",") != -1:
-                        comma = bookAuthor.find(",")
-                        bookAuthor = f"{bookAuthor[comma+2:]} {bookAuthor[:comma]}".strip()
-                    print(bookTitle, bookAuthor)
-                    
-                # get the location by finding the word inside the file.
-                elif line.find("Location") != -1:
-                    index = line.find("Location")+len("Location")+1
-                    endIndex = line.find(" ",index)
-                    bookLoc = line[index:endIndex]
-                
-                # get the quote from the file and save it
-                elif saveParagraph:
-                    bookQuote = line.strip()
-                    saveParagraph = False
+                    book_title = line[:index - 1].strip()
+                    book_author = line[index + 1:-1].strip()
 
-                # check if the quote is next as it is preceded by a blank line
-                if not line.strip():
-                    saveParagraph = True
-    except:
-        print("Failed to open text file, please check file.")   
+                # Location
+                elif "Location" in line:
+                    index = line.find("Location") + len("Location") + 1
+                    end_index = line.find(" ", index)
+                    book_location = line[index:end_index].strip() if end_index != -1 else line[index:].strip()
+
+                # Highlighted Text
+                elif save_next_line:
+                    book_quote = line
+                    save_next_line = False
+
+                    # Avoid duplicates
+                    if book_title and book_quote and (book_title, book_quote) not in existing_set:
+                        new_clippings.append({
+                            "book_title": book_title,
+                            "book_author": book_author,
+                            "book_location": book_location,
+                            "highlight": book_quote
+                        })
+                        existing_set.add((book_title, book_quote))
+
+                # Blank line means next line is a highlight
+                if line == "":
+                    save_next_line = True
+
+    except FileNotFoundError:
+        print(f"Error: {kindle_file_path} not found.")
+
+    return new_clippings
+
+
+def add_highlight_to_notion(NOTION_DATABASE_ID, NOTION_TOKEN, book_title, highlight):
+    """ Upload a highlight to Notion. """
+
+    headers = {
+        "Authorization": f"Bearer {NOTION_TOKEN}",
+        "Content-Type": "application/json",
+        "Notion-Version": "2022-06-28"
+    }
+
+    # Prepare the data
+    data = {
+        "parent": {"database_id": NOTION_DATABASE_ID},
+        "properties": {
+            "Name": {
+                "title": [{"text": {"content": highlight}}]
+            },
+            "Book Name Text": {
+                "rich_text": [{"text": {"content": book_title}}]
+            },
+            "Notebook": {
+                "relation": [{"id": "11971232b71b80978d15d5c9b9a5e048"}]  # Assuming this is the fixed Notebook ID
+            }
+        }
+    }
+
+    response = requests.post(NOTION_API_URL, headers=headers, data=json.dumps(data))
+
+    if response.status_code == 200:
+        print(f"✅ Added highlight from '{book_title}': {highlight}")
+    else:
+        print(f"❌ Failed to add highlight: {response.status_code}, {response.text}")
+
+
+def sync_clippings():
+    """ Main function to parse, filter, save, and upload highlights. """
+    load_dotenv(dotenv_path='credentials.env')
+    NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
+    NOTION_TOKEN = os.getenv("NOTION_TOKEN")
+
+    print("📖 Reading clippings from Kindle...")
+    new_highlights = parse_clippings_file()
+
+    if not new_highlights:
+        print("✅ No new highlights found.")
+        return
+
+    print("💾 Saving new highlights locally...")
+    save_new_clippings(new_highlights)
+
+    print("📤 Uploading new highlights to Notion...")
+    for entry in new_highlights:
+        print(f"📚 Book: {entry['book_title']}, Highlight: {entry['highlight']}")
+        add_highlight_to_notion(NOTION_DATABASE_ID, NOTION_TOKEN, entry["book_title"], entry["highlight"])
+
+    print("🎉 Sync complete!")
+
 
 if __name__ == "__main__":
-    main()
+    sync_clippings()
